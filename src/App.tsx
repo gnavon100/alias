@@ -16,7 +16,7 @@ function App() {
 
   return (
     <main className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-heebo">
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {gamePhase === GamePhase.SETUP && <SetupScreen key="setup" />}
 
         {gamePhase === GamePhase.PRE_TURN && <PreTurnScreen key="preturn" />}
