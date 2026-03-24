@@ -4,6 +4,7 @@ import { GamePhase } from '../types';
 import { TEAM_COLORS } from '../constants';
 import { validateDataset, fisherYatesShuffle, drawNextWord } from '../utils/wordSelection';
 import { calculateNewPosition, checkWin } from '../utils/scoring';
+import { generatePowerUpTiles, getPowerUpAtPosition } from '../utils/powerUps';
 import wordData from '../data/words.json';
 
 // ── Initial values ──
@@ -14,6 +15,8 @@ const INITIAL_TURN: TurnState = {
   wordsCorrect: 0,
   wordsSkipped: 0,
   wordHistory: [],
+  activePowerUp: null,
+  pointMultiplier: 1,
 };
 
 const INITIAL_STATE: GameState = {
@@ -27,6 +30,9 @@ const INITIAL_STATE: GameState = {
   currentWordIndex: 0,
   bonusWord: null,
   savedConfig: null,
+  powerUpTiles: [],
+  bothTeamsWordsRemaining: 0,
+  bothTeamsScores: {},
 };
 
 // ── Store ──
@@ -52,6 +58,8 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
       };
     });
 
+    const powerUpTiles = generatePowerUpTiles(config.boardSize);
+
     set({
       gamePhase: GamePhase.PRE_TURN,
       boardSize: config.boardSize,
@@ -63,33 +71,85 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
       currentWordIndex: 0,
       bonusWord: null,
       savedConfig: config,
+      powerUpTiles,
+      bothTeamsWordsRemaining: 0,
+      bothTeamsScores: {},
     });
   },
 
   // ────────────────────────────────────────────
-  // PRE_TURN → TURN
+  // PRE_TURN → POWER_UP_REVEAL or TURN
   // ────────────────────────────────────────────
   startTurn: () => {
     const state = get();
     if (state.gamePhase !== GamePhase.PRE_TURN) return;
+
+    const currentTeam = state.teams[state.currentTeamIndex];
+    const powerUp = getPowerUpAtPosition(currentTeam.position, state.powerUpTiles);
 
     const { word, newShuffled, newIndex } = drawNextWord(
       state.shuffledWords,
       state.currentWordIndex,
     );
 
-    set({
-      gamePhase: GamePhase.TURN,
-      turn: {
-        currentWord: word,
-        turnScore: 0,
-        wordsCorrect: 0,
-        wordsSkipped: 0,
-        wordHistory: [],
-      },
-      shuffledWords: newShuffled,
-      currentWordIndex: newIndex,
-    });
+    const activePowerUp = powerUp?.type ?? null;
+    const pointMultiplier = activePowerUp === 'speed_demon' ? 2 : 1;
+
+    if (activePowerUp) {
+      // Show the power-up reveal screen first
+      set({
+        gamePhase: GamePhase.POWER_UP_REVEAL,
+        turn: {
+          currentWord: word,
+          turnScore: 0,
+          wordsCorrect: 0,
+          wordsSkipped: 0,
+          wordHistory: [],
+          activePowerUp,
+          pointMultiplier,
+        },
+        shuffledWords: newShuffled,
+        currentWordIndex: newIndex,
+      });
+    } else {
+      set({
+        gamePhase: GamePhase.TURN,
+        turn: {
+          currentWord: word,
+          turnScore: 0,
+          wordsCorrect: 0,
+          wordsSkipped: 0,
+          wordHistory: [],
+          activePowerUp: null,
+          pointMultiplier: 1,
+        },
+        shuffledWords: newShuffled,
+        currentWordIndex: newIndex,
+      });
+    }
+  },
+
+  // ────────────────────────────────────────────
+  // POWER_UP_REVEAL → TURN or BOTH_TEAMS_TURN
+  // ────────────────────────────────────────────
+  acknowledgePowerUp: () => {
+    const state = get();
+    if (state.gamePhase !== GamePhase.POWER_UP_REVEAL) return;
+
+    if (state.turn.activePowerUp === 'both_teams') {
+      // Initialize both-teams competition: 5 words, no timer
+      const scores: Record<string, number> = {};
+      for (const team of state.teams) {
+        scores[team.id] = 0;
+      }
+      set({
+        gamePhase: GamePhase.BOTH_TEAMS_TURN,
+        bothTeamsWordsRemaining: 5,
+        bothTeamsScores: scores,
+      });
+    } else {
+      set({ gamePhase: GamePhase.TURN });
+    }
   },
 
   // ────────────────────────────────────────────
@@ -99,7 +159,8 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
     const state = get();
     if (state.gamePhase !== GamePhase.TURN) return;
 
-    const newTurnScore = state.turn.turnScore + 1;
+    const multiplier = state.turn.pointMultiplier;
+    const newTurnScore = state.turn.turnScore + multiplier;
     const newWordsCorrect = state.turn.wordsCorrect + 1;
 
     // Add current word to history as correct
@@ -239,7 +300,7 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
   },
 
   // ────────────────────────────────────────────
-  // END_OF_TURN → TURN or GAME_OVER
+  // END_OF_TURN → TURN, GIFT_OR_CURSE, STEAL_THE_LEAD, BONUS_OR_MINUS, or GAME_OVER
   // ────────────────────────────────────────────
   commitTurn: () => {
     const state = get();
@@ -272,7 +333,55 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
       return;
     }
 
-    // Rotate to next team — go to PRE_TURN so they see the board first
+    // Check for post-turn power-up effects
+    const activePowerUp = state.turn.activePowerUp;
+
+    if (activePowerUp === 'bonus_or_minus') {
+      // Apply bonus/minus: 8+ words = +3, below = -3
+      const bonus = state.turn.wordsCorrect >= 8 ? 3 : -3;
+      const bonusPosition = calculateNewPosition(
+        newPosition,
+        bonus,
+        state.boardSize,
+      );
+      const teamsAfterBonus = updatedTeams.map((team, i) =>
+        i === state.currentTeamIndex
+          ? { ...team, position: bonusPosition }
+          : team,
+      );
+
+      const winAfterBonus = teamsAfterBonus.some((t) =>
+        checkWin(t.position, state.boardSize),
+      );
+      if (winAfterBonus) {
+        set({ gamePhase: GamePhase.GAME_OVER, teams: teamsAfterBonus });
+        return;
+      }
+
+      set({
+        gamePhase: GamePhase.BONUS_OR_MINUS,
+        teams: teamsAfterBonus,
+      });
+      return;
+    }
+
+    if (activePowerUp === 'gift_or_curse') {
+      set({
+        gamePhase: GamePhase.GIFT_OR_CURSE,
+        teams: updatedTeams,
+      });
+      return;
+    }
+
+    if (activePowerUp === 'steal_the_lead') {
+      set({
+        gamePhase: GamePhase.STEAL_THE_LEAD,
+        teams: updatedTeams,
+      });
+      return;
+    }
+
+    // Normal turn end — rotate to next team
     const nextTeamIndex =
       (state.currentTeamIndex + 1) % state.teams.length;
 
@@ -309,5 +418,239 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
   // ────────────────────────────────────────────
   exitToMenu: () => {
     set({ ...INITIAL_STATE });
+  },
+
+  // ────────────────────────────────────────────
+  // BOTH_TEAMS_TURN — correct guess by a team
+  // ────────────────────────────────────────────
+  bothTeamsCorrect: (teamId: string) => {
+    const state = get();
+    if (state.gamePhase !== GamePhase.BOTH_TEAMS_TURN) return;
+
+    const newHistory = state.turn.currentWord
+      ? [...state.turn.wordHistory, { word: state.turn.currentWord.word, wasCorrect: true }]
+      : state.turn.wordHistory;
+
+    const newScores = { ...state.bothTeamsScores };
+    newScores[teamId] = (newScores[teamId] || 0) + 1;
+
+    const remaining = state.bothTeamsWordsRemaining - 1;
+
+    if (remaining <= 0) {
+      // Round over — apply scores directly to positions
+      const updatedTeams = state.teams.map((team) => {
+        const bonus = newScores[team.id] || 0;
+        if (bonus > 0) {
+          return {
+            ...team,
+            position: calculateNewPosition(team.position, bonus, state.boardSize),
+          };
+        }
+        return team;
+      });
+
+      const anyWinner = updatedTeams.some((t) => checkWin(t.position, state.boardSize));
+
+      if (anyWinner) {
+        set({
+          gamePhase: GamePhase.GAME_OVER,
+          teams: updatedTeams,
+          turn: { ...state.turn, wordHistory: newHistory },
+          bothTeamsScores: newScores,
+          bothTeamsWordsRemaining: 0,
+        });
+        return;
+      }
+
+      // Advance to next team
+      const nextTeamIndex = (state.currentTeamIndex + 1) % state.teams.length;
+      set({
+        gamePhase: GamePhase.PRE_TURN,
+        teams: updatedTeams,
+        currentTeamIndex: nextTeamIndex,
+        turn: { ...INITIAL_TURN },
+        bonusWord: null,
+        bothTeamsScores: newScores,
+        bothTeamsWordsRemaining: 0,
+      });
+      return;
+    }
+
+    // Draw next word
+    const { word, newShuffled, newIndex } = drawNextWord(
+      state.shuffledWords,
+      state.currentWordIndex,
+    );
+
+    set({
+      turn: {
+        ...state.turn,
+        currentWord: word,
+        wordHistory: newHistory,
+      },
+      shuffledWords: newShuffled,
+      currentWordIndex: newIndex,
+      bothTeamsWordsRemaining: remaining,
+      bothTeamsScores: newScores,
+    });
+  },
+
+  // ────────────────────────────────────────────
+  // BOTH_TEAMS_TURN — skip (nobody guessed)
+  // ────────────────────────────────────────────
+  bothTeamsSkip: () => {
+    const state = get();
+    if (state.gamePhase !== GamePhase.BOTH_TEAMS_TURN) return;
+
+    const newHistory = state.turn.currentWord
+      ? [...state.turn.wordHistory, { word: state.turn.currentWord.word, wasCorrect: false }]
+      : state.turn.wordHistory;
+
+    const remaining = state.bothTeamsWordsRemaining - 1;
+
+    if (remaining <= 0) {
+      // Round over — apply scores directly to positions
+      const newScores = state.bothTeamsScores;
+      const updatedTeams = state.teams.map((team) => {
+        const bonus = newScores[team.id] || 0;
+        if (bonus > 0) {
+          return {
+            ...team,
+            position: calculateNewPosition(team.position, bonus, state.boardSize),
+          };
+        }
+        return team;
+      });
+
+      const anyWinner = updatedTeams.some((t) => checkWin(t.position, state.boardSize));
+
+      if (anyWinner) {
+        set({
+          gamePhase: GamePhase.GAME_OVER,
+          teams: updatedTeams,
+          turn: { ...state.turn, wordHistory: newHistory },
+          bothTeamsWordsRemaining: 0,
+        });
+        return;
+      }
+
+      const nextTeamIndex = (state.currentTeamIndex + 1) % state.teams.length;
+      set({
+        gamePhase: GamePhase.PRE_TURN,
+        teams: updatedTeams,
+        currentTeamIndex: nextTeamIndex,
+        turn: { ...INITIAL_TURN },
+        bonusWord: null,
+        bothTeamsWordsRemaining: 0,
+      });
+      return;
+    }
+
+    // Draw next word
+    const { word, newShuffled, newIndex } = drawNextWord(
+      state.shuffledWords,
+      state.currentWordIndex,
+    );
+
+    set({
+      turn: {
+        ...state.turn,
+        currentWord: word,
+        wordHistory: newHistory,
+      },
+      shuffledWords: newShuffled,
+      currentWordIndex: newIndex,
+      bothTeamsWordsRemaining: remaining,
+    });
+  },
+
+  // ────────────────────────────────────────────
+  // GIFT_OR_CURSE → PRE_TURN or GAME_OVER
+  // ────────────────────────────────────────────
+  applyGiftOrCurse: (teamId: string, delta: number) => {
+    const state = get();
+    if (state.gamePhase !== GamePhase.GIFT_OR_CURSE) return;
+
+    const updatedTeams = state.teams.map((team) => {
+      if (team.id === teamId) {
+        return {
+          ...team,
+          position: calculateNewPosition(team.position, delta, state.boardSize),
+        };
+      }
+      return team;
+    });
+
+    const anyWinner = updatedTeams.some((t) => checkWin(t.position, state.boardSize));
+
+    if (anyWinner) {
+      set({ gamePhase: GamePhase.GAME_OVER, teams: updatedTeams });
+      return;
+    }
+
+    const nextTeamIndex = (state.currentTeamIndex + 1) % state.teams.length;
+    set({
+      gamePhase: GamePhase.PRE_TURN,
+      teams: updatedTeams,
+      currentTeamIndex: nextTeamIndex,
+      turn: { ...INITIAL_TURN },
+      bonusWord: null,
+    });
+  },
+
+  // ────────────────────────────────────────────
+  // STEAL_THE_LEAD → PRE_TURN or GAME_OVER
+  // ────────────────────────────────────────────
+  applyStealTheLead: (targetTeamId: string | null) => {
+    const state = get();
+    if (state.gamePhase !== GamePhase.STEAL_THE_LEAD) return;
+
+    let updatedTeams = [...state.teams];
+
+    if (targetTeamId) {
+      const currentTeam = updatedTeams[state.currentTeamIndex];
+      const targetTeam = updatedTeams.find((t) => t.id === targetTeamId);
+      if (targetTeam) {
+        const tempPosition = currentTeam.position;
+        updatedTeams = updatedTeams.map((team) => {
+          if (team.id === currentTeam.id) return { ...team, position: targetTeam.position };
+          if (team.id === targetTeamId) return { ...team, position: tempPosition };
+          return team;
+        });
+      }
+    }
+
+    const anyWinner = updatedTeams.some((t) => checkWin(t.position, state.boardSize));
+
+    if (anyWinner) {
+      set({ gamePhase: GamePhase.GAME_OVER, teams: updatedTeams });
+      return;
+    }
+
+    const nextTeamIndex = (state.currentTeamIndex + 1) % state.teams.length;
+    set({
+      gamePhase: GamePhase.PRE_TURN,
+      teams: updatedTeams,
+      currentTeamIndex: nextTeamIndex,
+      turn: { ...INITIAL_TURN },
+      bonusWord: null,
+    });
+  },
+
+  // ────────────────────────────────────────────
+  // SETUP — shuffle team order randomly
+  // ────────────────────────────────────────────
+  shuffleTeamOrder: () => {
+    const state = get();
+    if (state.gamePhase !== GamePhase.PRE_TURN) return;
+
+    // Fisher-Yates shuffle of teams array
+    const shuffled = [...state.teams];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    set({ teams: shuffled, currentTeamIndex: 0 });
   },
 }));

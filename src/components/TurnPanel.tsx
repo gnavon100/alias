@@ -14,6 +14,8 @@ export default function TurnPanel() {
   const wordsCorrect = useGameStore((s) => s.turn.wordsCorrect);
   const wordsSkipped = useGameStore((s) => s.turn.wordsSkipped);
   const turnDuration = useGameStore((s) => s.turnDuration);
+  const activePowerUp = useGameStore((s) => s.turn.activePowerUp);
+  const pointMultiplier = useGameStore((s) => s.turn.pointMultiplier);
   const teams = useGameStore((s) => s.teams);
   const currentTeamIndex = useGameStore((s) => s.currentTeamIndex);
   const correctGuess = useGameStore((s) => s.correctGuess);
@@ -23,6 +25,11 @@ export default function TurnPanel() {
   const currentTeam = teams[currentTeamIndex];
   const { play } = useAudio();
 
+  // Speed Demon: halve the turn duration
+  const effectiveDuration = activePowerUp === 'speed_demon'
+    ? Math.max(15, Math.floor(turnDuration / 2))
+    : turnDuration;
+
   const handleExpire = useCallback(() => {
     endTimer();
     play('timeUp');
@@ -30,7 +37,7 @@ export default function TurnPanel() {
   }, [endTimer, play]);
 
   const { remaining, total, phase, progress, start, pause } = useTimer({
-    duration: turnDuration,
+    duration: effectiveDuration,
     onExpire: handleExpire,
   });
 
@@ -86,6 +93,28 @@ export default function TurnPanel() {
           phase={phase}
           progress={progress}
         />
+
+        {/* Power-up indicator */}
+        {activePowerUp && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center justify-center gap-2 bg-purple-500/20 rounded-xl px-3 py-1.5"
+          >
+            {activePowerUp === 'speed_demon' && (
+              <span className="text-yellow-300 text-sm font-bold">⚡ כפול נקודות! | חצי זמן!</span>
+            )}
+            {activePowerUp === 'bonus_or_minus' && (
+              <span className="text-purple-300 text-sm font-bold">🎲 8+ מילים = בונוס +3 | פחות = -3</span>
+            )}
+            {activePowerUp === 'gift_or_curse' && (
+              <span className="text-pink-300 text-sm font-bold">🎁 בסוף — מתנה או קללה!</span>
+            )}
+            {activePowerUp === 'steal_the_lead' && (
+              <span className="text-cyan-300 text-sm font-bold">🔀 בסוף — אפשר להחליף מיקום!</span>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* ── Word card (animated flip) ── */}
@@ -112,6 +141,7 @@ export default function TurnPanel() {
         <span>✅ {wordsCorrect}</span>
         <span className="font-bold text-lg text-slate-200">
           ניקוד: {turnScore >= 0 ? `+${turnScore}` : turnScore}
+          {pointMultiplier > 1 && <span className="text-yellow-400 text-sm"> (×{pointMultiplier})</span>}
         </span>
         <span>❌ {wordsSkipped}</span>
       </motion.div>

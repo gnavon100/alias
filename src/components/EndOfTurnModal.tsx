@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { POWER_UP_INFO } from '../types';
 import { haptic } from '../utils/haptics';
 import { modalOverlay, modalContent, staggerContainer, staggerItem } from '../utils/motion';
 import { flagWord, isWordFlagged } from '../utils/wordFlags';
@@ -73,6 +74,23 @@ export default function EndOfTurnModal() {
               {turn.turnScore >= 0 ? `+${turn.turnScore}` : turn.turnScore}
             </span>
           </div>
+
+          {/* Power-up post-turn notice */}
+          {turn.activePowerUp && POWER_UP_INFO[turn.activePowerUp] && (
+            <div className="bg-purple-500/15 rounded-xl p-3 text-center border border-purple-400/30">
+              <span className="text-purple-300 text-sm font-semibold">
+                {POWER_UP_INFO[turn.activePowerUp].emoji}{' '}
+                {turn.activePowerUp === 'bonus_or_minus' && (
+                  turn.wordsCorrect >= 8
+                    ? 'בונוס +3 צעדים בדרך! 🚀'
+                    : 'מינוס -3 צעדים בדרך... 📉'
+                )}
+                {turn.activePowerUp === 'gift_or_curse' && 'אחרי — בוחרים מתנה או קללה!'}
+                {turn.activePowerUp === 'steal_the_lead' && 'אחרי — אפשר להחליף מיקום!'}
+                {turn.activePowerUp === 'speed_demon' && `מהירות שטנית! ×2 נקודות`}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Word History */}

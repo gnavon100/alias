@@ -8,6 +8,7 @@ interface BoardProps {
 
 export default function Board({ teams, boardSize }: BoardProps) {
   const currentTeamIndex = useGameStore((s) => s.currentTeamIndex);
+  const powerUpTiles = useGameStore((s) => s.powerUpTiles);
 
   // Simple linear board — tiles rendered as small squares in a flex-wrap grid
   const tiles = Array.from({ length: boardSize }, (_, i) => i);
@@ -20,6 +21,9 @@ export default function Board({ teams, boardSize }: BoardProps) {
     positionMap.get(pos)!.push(team);
   }
 
+  // Build a set of power-up positions for quick lookup
+  const powerUpPositions = new Set(powerUpTiles.map((t) => t.position));
+
   return (
     <div className="w-full px-2">
       <div className="flex flex-wrap gap-1 justify-center">
@@ -27,6 +31,7 @@ export default function Board({ teams, boardSize }: BoardProps) {
           const teamsHere = positionMap.get(tileIndex) || [];
           const isFinish = tileIndex === boardSize - 1;
           const isStart = tileIndex === 0;
+          const isPowerUp = powerUpPositions.has(tileIndex);
 
           return (
             <div
@@ -36,11 +41,16 @@ export default function Board({ teams, boardSize }: BoardProps) {
                 text-[10px] font-semibold transition-colors
                 ${isFinish ? 'bg-yellow-500/30 ring-1 ring-yellow-400' : ''}
                 ${isStart ? 'bg-green-500/30 ring-1 ring-green-500' : ''}
-                ${!isFinish && !isStart ? 'bg-board-tile' : ''}
+                ${isPowerUp && !isFinish && !isStart ? 'bg-purple-500/25 ring-1 ring-purple-400/60' : ''}
+                ${!isFinish && !isStart && !isPowerUp ? 'bg-board-tile' : ''}
               `}
             >
-              {/* Tile number */}
-              <span className="text-slate-500">{tileIndex + 1}</span>
+              {/* Tile content */}
+              {isPowerUp && !isFinish && !isStart ? (
+                <span className="text-[11px]">⭐</span>
+              ) : (
+                <span className="text-slate-500">{tileIndex + 1}</span>
+              )}
 
               {/* Team tokens */}
               {teamsHere.length > 0 && (
