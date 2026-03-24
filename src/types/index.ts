@@ -42,11 +42,17 @@ export interface Team {
 
 // ── Turn ──
 
+export interface WordHistory {
+  word: string;
+  wasCorrect: boolean;
+}
+
 export interface TurnState {
   currentWord: Word | null;
   turnScore: number;
   wordsCorrect: number;
   wordsSkipped: number;
+  wordHistory: WordHistory[];
 }
 
 // ── Game Configuration ──

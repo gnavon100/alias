@@ -13,6 +13,7 @@ const INITIAL_TURN: TurnState = {
   turnScore: 0,
   wordsCorrect: 0,
   wordsSkipped: 0,
+  wordHistory: [],
 };
 
 const INITIAL_STATE: GameState = {
@@ -80,6 +81,7 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
         turnScore: 0,
         wordsCorrect: 0,
         wordsSkipped: 0,
+        wordHistory: [],
       },
       shuffledWords: newShuffled,
       currentWordIndex: newIndex,
@@ -95,6 +97,11 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
 
     const newTurnScore = state.turn.turnScore + 1;
     const newWordsCorrect = state.turn.wordsCorrect + 1;
+
+    // Add current word to history as correct
+    const newHistory = state.turn.currentWord
+      ? [...state.turn.wordHistory, { word: state.turn.currentWord.word, wasCorrect: true }]
+      : state.turn.wordHistory;
 
     // Check mid-turn win: would the team reach the end?
     const currentTeam = state.teams[state.currentTeamIndex];
@@ -118,6 +125,7 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
           ...state.turn,
           turnScore: newTurnScore,
           wordsCorrect: newWordsCorrect,
+          wordHistory: newHistory,
         },
       });
       return;
@@ -134,6 +142,7 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
         currentWord: word,
         turnScore: newTurnScore,
         wordsCorrect: newWordsCorrect,
+        wordHistory: newHistory,
       },
       shuffledWords: newShuffled,
       currentWordIndex: newIndex,
@@ -147,6 +156,11 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
     const state = get();
     if (state.gamePhase !== GamePhase.TURN) return;
 
+    // Add current word to history as skipped
+    const newHistory = state.turn.currentWord
+      ? [...state.turn.wordHistory, { word: state.turn.currentWord.word, wasCorrect: false }]
+      : state.turn.wordHistory;
+
     const { word, newShuffled, newIndex } = drawNextWord(
       state.shuffledWords,
       state.currentWordIndex,
@@ -158,6 +172,7 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
         currentWord: word,
         turnScore: state.turn.turnScore - 1,
         wordsSkipped: state.turn.wordsSkipped + 1,
+        wordHistory: newHistory,
       },
       shuffledWords: newShuffled,
       currentWordIndex: newIndex,

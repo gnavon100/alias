@@ -62,6 +62,30 @@ export default function EndOfTurnModal() {
           </div>
         </div>
 
+        {/* Word History */}
+        {turn.wordHistory.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-500 text-center">
+              מילים בתור
+            </h3>
+            <div className="bg-slate-900 rounded-2xl p-3 max-h-40 overflow-y-auto">
+              <div className="space-y-1">
+                {turn.wordHistory.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between px-2 py-1 text-sm"
+                  >
+                    <span className="text-slate-300">{item.word}</span>
+                    <span className={item.wasCorrect ? 'text-green-400' : 'text-red-400'}>
+                      {item.wasCorrect ? '✓' : '✗'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Scoreboard */}
         <motion.div className="space-y-2" {...staggerContainer}>
           <h3 className="text-sm font-semibold text-slate-500 text-center">
