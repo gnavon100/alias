@@ -1,8 +1,13 @@
+import { useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { haptic } from '../utils/haptics';
 import { useAudio } from '../hooks/useAudio';
+import { useTimer } from '../hooks/useTimer';
 import { wordCard } from '../utils/motion';
+import TimerDisplay from './TimerDisplay';
+
+const BOTH_TEAMS_WORD_DURATION = 20; // seconds per word
 
 export default function BothTeamsPanel() {
   const currentWord = useGameStore((s) => s.turn.currentWord);
@@ -13,16 +18,36 @@ export default function BothTeamsPanel() {
   const bothTeamsSkip = useGameStore((s) => s.bothTeamsSkip);
   const { play } = useAudio();
 
+  const handleSkip = useCallback(() => {
+    bothTeamsSkip();
+    play('skip');
+    haptic('medium');
+  }, [bothTeamsSkip, play]);
+
+  // 20-second timer per word — auto-skip on expiry
+  const { remaining, total, phase, progress, start, reset } = useTimer({
+    duration: BOTH_TEAMS_WORD_DURATION,
+    onExpire: handleSkip,
+  });
+
+  // Start timer fresh on each new word
+  useEffect(() => {
+    reset();
+    start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWord?.word]);
+
+  // Tick sound in urgent phase
+  useEffect(() => {
+    if (phase === 'urgent' && remaining > 0) {
+      play('tick');
+    }
+  }, [remaining, phase, play]);
+
   const handleCorrect = (teamId: string) => {
     bothTeamsCorrect(teamId);
     play('correct');
     haptic('light');
-  };
-
-  const handleSkip = () => {
-    bothTeamsSkip();
-    play('skip');
-    haptic('medium');
   };
 
   return (
@@ -39,11 +64,21 @@ export default function BothTeamsPanel() {
           <span className="text-3xl">⚔️</span>
         </motion.div>
 
-        {/* Words remaining */}
-        <div className="bg-slate-800 rounded-xl px-4 py-2 inline-block">
-          <span className="text-slate-400 text-sm">מילים שנותרו: </span>
-          <span className="text-white font-bold text-lg">{bothTeamsWordsRemaining}</span>
+        {/* Words remaining + timer */}
+        <div className="flex items-center justify-center gap-4">
+          <div className="bg-slate-800 rounded-xl px-4 py-2">
+            <span className="text-slate-400 text-sm">מילים שנותרו: </span>
+            <span className="text-white font-bold text-lg">{bothTeamsWordsRemaining}</span>
+          </div>
         </div>
+
+        {/* Per-word timer */}
+        <TimerDisplay
+          remaining={remaining}
+          total={total}
+          phase={phase}
+          progress={progress}
+        />
 
         {/* Current scores */}
         <div className="flex justify-center gap-4 flex-wrap">
@@ -64,7 +99,7 @@ export default function BothTeamsPanel() {
       </div>
 
       {/* Word card */}
-      <div className="flex-1 flex items-center justify-center py-6">
+      <div className="flex-1 flex items-center justify-center py-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentWord?.word ?? 'empty'}

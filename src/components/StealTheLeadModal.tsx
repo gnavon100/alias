@@ -21,12 +21,9 @@ export default function StealTheLeadModal() {
 
   const handleReveal = () => {
     setRevealed(true);
-    haptic('medium');
-  };
-
-  const handleSwap = () => {
-    applyStealTheLead(randomTarget.id);
     haptic('heavy');
+    // Auto-swap immediately after reveal
+    applyStealTheLead(randomTarget.id);
   };
 
   const handleDecline = () => {
@@ -63,7 +60,7 @@ export default function StealTheLeadModal() {
               רוצים להחליף מיקום עם קבוצה אקראית?
             </p>
             <p className="text-slate-500 text-center text-sm">
-              לא תדעו עם מי עד שתגלו! 🎲
+              לחצו גלה — ותוחלפו מיד! 🎲
             </p>
             <div className="flex gap-3">
               <motion.button
@@ -80,20 +77,20 @@ export default function StealTheLeadModal() {
                 className="flex-1 py-3 rounded-xl font-bold text-lg bg-cyan-500 text-white
                            hover:bg-cyan-400 transition-colors"
               >
-                🎲 גלה!
+                🎲 גלה והחלף!
               </motion.button>
             </div>
           </>
         ) : (
           <>
-            {/* Reveal animation */}
+            {/* Reveal animation — swap already applied */}
             <motion.div
               initial={{ opacity: 0, scale: 0.5, rotate: 180 }}
               animate={{ opacity: 1, scale: 1, rotate: 0 }}
               transition={{ type: 'spring', damping: 12, stiffness: 200 }}
               className="bg-slate-900 rounded-2xl p-5 text-center space-y-3"
             >
-              <p className="text-slate-400 text-sm">ההחלפה היא עם...</p>
+              <p className="text-green-400 text-sm font-bold">✅ הוחלף!</p>
               <div className="flex items-center justify-center gap-3">
                 <div
                   className="w-8 h-8 rounded-full"
@@ -103,42 +100,17 @@ export default function StealTheLeadModal() {
                   {randomTarget.name}
                 </span>
               </div>
-              <p className="text-slate-500 text-sm">
-                משבצת {randomTarget.position}
-              </p>
-            </motion.div>
-
-            <div className="bg-slate-900/50 rounded-xl p-3 text-center">
               <p className="text-slate-400 text-sm">
                 <span style={{ color: currentTeam.color.hex }} className="font-bold">
                   {currentTeam.name}
                 </span>
-                {' '}(משבצת {currentTeam.position}) ↔{' '}
+                {' '}↔{' '}
                 <span style={{ color: randomTarget.color.hex }} className="font-bold">
                   {randomTarget.name}
                 </span>
-                {' '}(משבצת {randomTarget.position})
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex gap-3">
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleDecline}
-                className="flex-1 py-3 rounded-xl font-bold text-lg bg-slate-700 text-slate-300
-                           hover:bg-slate-600 transition-colors"
-              >
-                ❌ ויתור
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={handleSwap}
-                className="flex-1 py-3 rounded-xl font-bold text-lg bg-cyan-500 text-white
-                           hover:bg-cyan-400 transition-colors"
-              >
-                🔀 החלף!
-              </motion.button>
-            </div>
           </>
         )}
       </motion.div>

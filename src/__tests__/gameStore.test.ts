@@ -188,7 +188,7 @@ describe('acknowledgePowerUp', () => {
 
     const s = getState();
     expect(s.gamePhase).toBe(GamePhase.BOTH_TEAMS_TURN);
-    expect(s.bothTeamsWordsRemaining).toBe(5);
+    expect(s.bothTeamsWordsRemaining).toBe(7);
     expect(Object.keys(s.bothTeamsScores)).toHaveLength(2);
   });
 
@@ -308,13 +308,13 @@ describe('Both Teams Competition', () => {
     getState().acknowledgePowerUp();
   });
 
-  it('starts with 5 words remaining', () => {
-    expect(getState().bothTeamsWordsRemaining).toBe(5);
+  it('starts with 7 words remaining', () => {
+    expect(getState().bothTeamsWordsRemaining).toBe(7);
   });
 
   it('decrements remaining words on correct guess', () => {
     getState().bothTeamsCorrect('team-0');
-    expect(getState().bothTeamsWordsRemaining).toBe(4);
+    expect(getState().bothTeamsWordsRemaining).toBe(6);
   });
 
   it('awards point to the guessing team', () => {
@@ -325,36 +325,35 @@ describe('Both Teams Competition', () => {
 
   it('decrements remaining words on skip', () => {
     getState().bothTeamsSkip();
-    expect(getState().bothTeamsWordsRemaining).toBe(4);
+    expect(getState().bothTeamsWordsRemaining).toBe(6);
   });
 
   it('draws next word on correct guess', () => {
-    const word1 = getState().turn.currentWord!.word;
     getState().bothTeamsCorrect('team-0');
     if (getState().bothTeamsWordsRemaining > 0) {
-      const word2 = getState().turn.currentWord!.word;
-      // Very unlikely to be the same word
       expect(getState().turn.currentWord).not.toBeNull();
     }
   });
 
-  it('ends after 5 words and applies scores to positions', () => {
-    // Team-0 guesses 3, team-1 guesses 1, 1 skipped
+  it('ends after 7 words and applies scores to positions', () => {
+    // Team-0 guesses 4, team-1 guesses 1, 2 skipped
     getState().bothTeamsCorrect('team-0');
     getState().bothTeamsCorrect('team-0');
     getState().bothTeamsCorrect('team-1');
     getState().bothTeamsSkip();
-    getState().bothTeamsCorrect('team-0'); // 5th word — round over
+    getState().bothTeamsCorrect('team-0');
+    getState().bothTeamsSkip();
+    getState().bothTeamsCorrect('team-0'); // 7th word — round over
 
     const s = getState();
     expect(s.gamePhase).toBe(GamePhase.PRE_TURN);
-    expect(s.teams.find((t) => t.id === 'team-0')!.position).toBe(3);
+    expect(s.teams.find((t) => t.id === 'team-0')!.position).toBe(4);
     expect(s.teams.find((t) => t.id === 'team-1')!.position).toBe(1);
     expect(s.teams.find((t) => t.id === 'team-2')!.position).toBe(0);
   });
 
   it('advances to next team after round ends', () => {
-    for (let i = 0; i < 5; i++) getState().bothTeamsSkip();
+    for (let i = 0; i < 7; i++) getState().bothTeamsSkip();
     expect(getState().currentTeamIndex).toBe(1);
   });
 
@@ -366,7 +365,7 @@ describe('Both Teams Competition', () => {
     useGameStore.setState({ teams });
 
     // Team-0 guesses and crosses finish
-    for (let i = 0; i < 5; i++) getState().bothTeamsCorrect('team-0');
+    for (let i = 0; i < 7; i++) getState().bothTeamsCorrect('team-0');
 
     expect(getState().gamePhase).toBe(GamePhase.GAME_OVER);
     expect(getState().teams.find((t) => t.id === 'team-0')!.position).toBe(30);

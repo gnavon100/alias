@@ -137,14 +137,14 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
     if (state.gamePhase !== GamePhase.POWER_UP_REVEAL) return;
 
     if (state.turn.activePowerUp === 'both_teams') {
-      // Initialize both-teams competition: 5 words, no timer
+      // Initialize both-teams competition: 7 words, 20s per word
       const scores: Record<string, number> = {};
       for (const team of state.teams) {
         scores[team.id] = 0;
       }
       set({
         gamePhase: GamePhase.BOTH_TEAMS_TURN,
-        bothTeamsWordsRemaining: 5,
+        bothTeamsWordsRemaining: 7,
         bothTeamsScores: scores,
       });
     } else {
