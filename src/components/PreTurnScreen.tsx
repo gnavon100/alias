@@ -4,6 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import { useAudio } from '../hooks/useAudio';
 import { haptic } from '../utils/haptics';
 import Board from './Board';
+import OptionsMenu from './OptionsMenu';
 
 export default function PreTurnScreen() {
   const teams = useGameStore((s) => s.teams);
@@ -223,6 +224,9 @@ export default function PreTurnScreen() {
           ▶ התחל תור
         </motion.button>
       </motion.div>
+
+      {/* Mute button (top-left) */}
+      <OptionsMenu mode="mute-only" />
     </div>
   );
 }

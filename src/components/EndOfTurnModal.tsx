@@ -5,6 +5,7 @@ import { POWER_UP_INFO } from '../types';
 import { haptic } from '../utils/haptics';
 import { modalOverlay, modalContent, staggerContainer, staggerItem } from '../utils/motion';
 import { flagWord, isWordFlagged } from '../utils/wordFlags';
+import OptionsMenu from './OptionsMenu';
 
 export default function EndOfTurnModal() {
   const [flaggedWords, setFlaggedWords] = useState<Set<string>>(new Set());
@@ -174,6 +175,9 @@ export default function EndOfTurnModal() {
           ▶ המשך
         </motion.button>
       </motion.div>
+
+      {/* Mute button (top-left) */}
+      <OptionsMenu mode="mute-only" />
     </motion.div>
   );
 }

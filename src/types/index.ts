@@ -90,6 +90,7 @@ export interface GameConfig {
   teamNames: string[];
   boardSize: number;
   turnDuration: number;
+  enablePowerUps: boolean;
 }
 
 // ── Store ──
@@ -105,6 +106,7 @@ export interface GameState {
   currentWordIndex: number;
   bonusWord: Word | null;
   savedConfig: GameConfig | null;
+  enablePowerUps: boolean;
   powerUpTiles: PowerUpTile[];
   bothTeamsWordsRemaining: number;
   bothTeamsScores: Record<string, number>;

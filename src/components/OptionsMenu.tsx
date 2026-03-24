@@ -4,34 +4,56 @@ import { useGameStore } from '../store/gameStore';
 import { modalOverlay, modalContent } from '../utils/motion';
 import { isGlobalMuted, setGlobalMute } from '../hooks/useAudio';
 
+/** 'full'      — pause/resume + mute + exit (in-game)
+ *  'mute-only' — just a mute toggle button, no modal */
+type OptionsMode = 'full' | 'mute-only';
+
 interface OptionsMenuProps {
-  onPause: () => void;
-  onResume: () => void;
+  mode?: OptionsMode;
+  onPause?: () => void;
+  onResume?: () => void;
 }
 
-export default function OptionsMenu({ onPause, onResume }: OptionsMenuProps) {
+export default function OptionsMenu({ mode = 'full', onPause, onResume }: OptionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(isGlobalMuted());
   const exitToMenu = useGameStore((s) => s.exitToMenu);
-
-  const handleOpen = () => {
-    onPause();
-    setIsOpen(true);
-  };
-
-  const handleResume = () => {
-    setIsOpen(false);
-    onResume();
-  };
-
-  const handleExit = () => {
-    exitToMenu();
-  };
 
   const handleToggleMute = () => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     setGlobalMute(newMuted);
+  };
+
+  // ── Mute-only mode: single button, no modal ──
+  if (mode === 'mute-only') {
+    return (
+      <button
+        onClick={handleToggleMute}
+        className="fixed top-3 left-3 z-40 w-10 h-10 rounded-full
+                   bg-slate-800/80 backdrop-blur flex items-center justify-center
+                   text-slate-400 hover:text-slate-200 transition-colors
+                   border border-slate-700"
+        aria-label={isMuted ? 'הפעל צלילים' : 'השתק צלילים'}
+      >
+        {isMuted ? '🔇' : '🔊'}
+      </button>
+    );
+  }
+
+  // ── Full mode: gear → modal with pause/resume/exit ──
+  const handleOpen = () => {
+    onPause?.();
+    setIsOpen(true);
+  };
+
+  const handleResume = () => {
+    setIsOpen(false);
+    onResume?.();
+  };
+
+  const handleExit = () => {
+    exitToMenu();
   };
 
   return (

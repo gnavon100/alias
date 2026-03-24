@@ -30,6 +30,7 @@ const INITIAL_STATE: GameState = {
   currentWordIndex: 0,
   bonusWord: null,
   savedConfig: null,
+  enablePowerUps: true,
   powerUpTiles: [],
   bothTeamsWordsRemaining: 0,
   bothTeamsScores: {},
@@ -58,7 +59,7 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
       };
     });
 
-    const powerUpTiles = generatePowerUpTiles(config.boardSize);
+    const powerUpTiles = config.enablePowerUps ? generatePowerUpTiles(config.boardSize) : [];
 
     set({
       gamePhase: GamePhase.PRE_TURN,
@@ -71,6 +72,7 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
       currentWordIndex: 0,
       bonusWord: null,
       savedConfig: config,
+      enablePowerUps: config.enablePowerUps,
       powerUpTiles,
       bothTeamsWordsRemaining: 0,
       bothTeamsScores: {},

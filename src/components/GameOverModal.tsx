@@ -8,6 +8,7 @@ import { modalOverlay, modalContent, staggerContainer, staggerItem } from '../ut
 import { getFlaggedWords, clearFlaggedWords } from '../utils/wordFlags';
 import { sendFlaggedWordsEmail } from '../utils/emailService';
 import Confetti from './Confetti';
+import OptionsMenu from './OptionsMenu';
 
 export default function GameOverModal() {
   const teams = useGameStore((s) => s.teams);
@@ -115,6 +116,9 @@ export default function GameOverModal() {
         </div>
       </motion.div>
     </motion.div>
+
+      {/* Mute button (top-left) */}
+      <OptionsMenu mode="mute-only" />
     </>
   );
 }

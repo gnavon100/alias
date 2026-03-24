@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GAME_DEFAULTS, TEAM_COLORS } from '../constants';
 import { useGameStore } from '../store/gameStore';
+import OptionsMenu from './OptionsMenu';
 
 export default function SetupScreen() {
   const initGame = useGameStore((s) => s.initGame);
@@ -12,6 +13,7 @@ export default function SetupScreen() {
   );
   const [boardSize, setBoardSize] = useState<number>(GAME_DEFAULTS.boardSize);
   const [turnDuration, setTurnDuration] = useState<number>(GAME_DEFAULTS.turnDuration);
+  const [enablePowerUps, setEnablePowerUps] = useState<boolean>(true);
 
   const handleNameChange = (index: number, value: string) => {
     setTeamNames((prev) => {
@@ -23,7 +25,7 @@ export default function SetupScreen() {
 
   const handleStart = () => {
     const names = teamNames.slice(0, teamCount);
-    initGame({ teamNames: names, boardSize, turnDuration });
+    initGame({ teamNames: names, boardSize, turnDuration, enablePowerUps });
   };
 
   const canStart = teamCount >= GAME_DEFAULTS.minTeams;
@@ -140,6 +142,32 @@ export default function SetupScreen() {
         </div>
       </section>
 
+      {/* ── Special tiles ── */}
+      <section className="w-full">
+        <label className="flex items-center gap-3 cursor-pointer select-none">
+          <div
+            onClick={() => setEnablePowerUps((v) => !v)}
+            className={`relative w-12 h-6 rounded-full transition-colors ${
+              enablePowerUps ? 'bg-purple-600' : 'bg-slate-600'
+            }`}
+          >
+            <span
+              className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                enablePowerUps ? 'translate-x-7' : 'translate-x-1'
+              }`}
+            />
+          </div>
+          <span className="text-slate-200 font-semibold text-base">
+            ⭐ משבצות מיוחדות
+          </span>
+        </label>
+        <p className="mt-1 text-sm text-slate-500 pr-1">
+          {enablePowerUps
+            ? 'כל 8–12 משבצות מופיעה משבצת הפתעה עם אפקט מיוחד'
+            : 'משחק רגיל ללא משבצות מיוחדות'}
+        </p>
+      </section>
+
       {/* ── Start button ── */}
       <motion.button
         whileTap={{ scale: 0.95 }}
@@ -149,6 +177,9 @@ export default function SetupScreen() {
       >
         🚀 התחל משחק
       </motion.button>
+
+      {/* Mute button (top-left) */}
+      <OptionsMenu mode="mute-only" />
     </motion.div>
   );
 }
