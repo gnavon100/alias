@@ -11,12 +11,8 @@ const SERVICE_ID = 'daphnalias';
 const TEMPLATE_ID = 'template_n9fhcu8';
 const PUBLIC_KEY = 'NWVCWh51znas3iHa0';
 
-/**
- * Initialize EmailJS
- */
-export const initEmailJS = (): void => {
-  emailjs.init(PUBLIC_KEY);
-};
+// Initialize EmailJS immediately
+emailjs.init(PUBLIC_KEY);
 
 /**
  * Send flagged words via email
