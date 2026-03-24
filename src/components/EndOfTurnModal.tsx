@@ -24,6 +24,10 @@ export default function EndOfTurnModal() {
       ? calculateNewPosition(team.position, turn.turnScore, boardSize)
       : team.position;
 
+  // Format position as board label: position 0 = tile "1", position boardSize = "🏁"
+  const posLabel = (pos: number) =>
+    pos >= boardSize ? '🏁' : String(pos + 1);
+
   const handleContinue = () => {
     commitTurn();
     haptic('light');
@@ -168,7 +172,7 @@ export default function EndOfTurnModal() {
                 <span className="text-slate-200 font-medium">{team.name}</span>
               </div>
               <span className="text-slate-400 font-semibold">
-                משבצת {projectedPosition(team, i)}
+                משבצת {posLabel(projectedPosition(team, i))}
               </span>
             </motion.div>
           ))}

@@ -10,13 +10,14 @@ export default function Board({ teams, boardSize }: BoardProps) {
   const currentTeamIndex = useGameStore((s) => s.currentTeamIndex);
   const powerUpTiles = useGameStore((s) => s.powerUpTiles);
 
-  // Simple linear board — tiles rendered as small squares in a flex-wrap grid
-  const tiles = Array.from({ length: boardSize }, (_, i) => i);
+  // boardSize+1 tiles: indices 0..boardSize-1 are play tiles (labeled 1..boardSize),
+  // index boardSize is the finish tile (🏁)
+  const tiles = Array.from({ length: boardSize + 1 }, (_, i) => i);
 
   // Build a map: position → list of teams at that position
   const positionMap = new Map<number, Team[]>();
   for (const team of teams) {
-    const pos = Math.min(team.position, boardSize - 1);
+    const pos = Math.min(team.position, boardSize); // clamp to finish tile
     if (!positionMap.has(pos)) positionMap.set(pos, []);
     positionMap.get(pos)!.push(team);
   }
@@ -29,9 +30,9 @@ export default function Board({ teams, boardSize }: BoardProps) {
       <div className="flex flex-wrap gap-1 justify-center">
         {tiles.map((tileIndex) => {
           const teamsHere = positionMap.get(tileIndex) || [];
-          const isFinish = tileIndex === boardSize - 1;
+          const isFinish = tileIndex === boardSize;
           const isStart = tileIndex === 0;
-          const isPowerUp = powerUpPositions.has(tileIndex);
+          const isPowerUp = powerUpPositions.has(tileIndex) && !isFinish && !isStart;
 
           return (
             <div
@@ -39,14 +40,16 @@ export default function Board({ teams, boardSize }: BoardProps) {
               className={`
                 relative w-8 h-8 sm:w-9 sm:h-9 rounded-md flex items-center justify-center
                 text-[10px] font-semibold transition-colors
-                ${isFinish ? 'bg-yellow-500/30 ring-1 ring-yellow-400' : ''}
-                ${isStart ? 'bg-green-500/30 ring-1 ring-green-500' : ''}
-                ${isPowerUp && !isFinish && !isStart ? 'bg-purple-500/25 ring-1 ring-purple-400/60' : ''}
+                ${isFinish ? 'bg-yellow-400/40 ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900' : ''}
+                ${isStart && !isFinish ? 'bg-green-500/30 ring-1 ring-green-500' : ''}
+                ${isPowerUp ? 'bg-purple-500/25 ring-1 ring-purple-400/60' : ''}
                 ${!isFinish && !isStart && !isPowerUp ? 'bg-board-tile' : ''}
               `}
             >
-              {/* Tile content */}
-              {isPowerUp && !isFinish && !isStart ? (
+              {/* Tile label */}
+              {isFinish ? (
+                <span className="text-[13px]">🏁</span>
+              ) : isPowerUp ? (
                 <span className="text-[11px]">⭐</span>
               ) : (
                 <span className="text-slate-500">{tileIndex + 1}</span>

@@ -99,7 +99,7 @@ export default function GameOverModal() {
                 </span>
               </div>
               <span className="text-slate-400 font-bold">
-                {team.position}/{boardSize}
+                {team.position >= boardSize ? '🏁' : `${team.position + 1}/${boardSize}`}
               </span>
             </motion.div>
           ))}
