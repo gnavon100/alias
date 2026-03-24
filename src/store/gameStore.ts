@@ -41,12 +41,16 @@ export const useGameStore = create<GameState & GameActions>()((set, get) => ({
     const validatedWords = validateDataset(wordData);
     const shuffled = fisherYatesShuffle(validatedWords);
 
-    const teams: Team[] = config.teamNames.map((name, i) => ({
-      id: `team-${i}`,
-      name: name.trim() || `קבוצה ${i + 1}`,
-      color: TEAM_COLORS[i],
-      position: 0,
-    }));
+    const teams: Team[] = config.teamNames.map((name, i) => {
+      // Sanitize and limit team name length
+      const sanitized = (name || '').trim().slice(0, 50);
+      return {
+        id: `team-${i}`,
+        name: sanitized || `קבוצה ${i + 1}`,
+        color: TEAM_COLORS[i],
+        position: 0,
+      };
+    });
 
     set({
       gamePhase: GamePhase.PRE_TURN,

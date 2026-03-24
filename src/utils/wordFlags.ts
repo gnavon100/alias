@@ -14,6 +14,12 @@ export interface FlaggedWord {
  * Add a word to the flagged list
  */
 export const flagWord = (word: string): void => {
+  // Validate input
+  if (!word || typeof word !== 'string' || word.length === 0 || word.length > 200) {
+    console.warn('Invalid word for flagging:', word);
+    return;
+  }
+  
   const flags = getFlaggedWords();
   
   // Avoid duplicates
@@ -27,12 +33,33 @@ export const flagWord = (word: string): void => {
 };
 
 /**
+ * Validate that data is a valid FlaggedWord
+ */
+const isValidFlaggedWord = (obj: any): obj is FlaggedWord => {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    typeof obj.word === 'string' &&
+    typeof obj.timestamp === 'number' &&
+    obj.word.length > 0 &&
+    obj.word.length <= 200 &&
+    obj.timestamp > 0
+  );
+};
+
+/**
  * Get all flagged words
  */
 export const getFlaggedWords = (): FlaggedWord[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    
+    // Filter and validate each entry
+    return parsed.filter(isValidFlaggedWord);
   } catch {
     return [];
   }
