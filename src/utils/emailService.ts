@@ -7,11 +7,9 @@ import emailjs from '@emailjs/browser';
 import { FlaggedWord } from './wordFlags';
 
 // EmailJS Configuration
-// You'll need to replace these with your actual EmailJS credentials
-// Sign up at https://www.emailjs.com/ and create a service + template
-const SERVICE_ID = 'service_alias'; // Replace with your EmailJS service ID
-const TEMPLATE_ID = 'template_alias'; // Replace with your EmailJS template ID  
-const PUBLIC_KEY = 'YOUR_PUBLIC_KEY'; // Replace with your EmailJS public key
+const SERVICE_ID = 'service_alias'; // You still need to get your Service ID from EmailJS dashboard
+const TEMPLATE_ID = 'template_n9fhcu8';
+const PUBLIC_KEY = 'NWVCWh51znas3iHa0';
 
 /**
  * Initialize EmailJS
