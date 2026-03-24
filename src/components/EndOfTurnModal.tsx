@@ -82,16 +82,22 @@ export default function EndOfTurnModal() {
               מילים בתור
             </h3>
             <div className="bg-slate-900 rounded-2xl p-3 max-h-40 overflow-y-auto">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {turn.wordHistory.map((item, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between px-2 py-1 text-sm gap-2"
+                    className="flex items-center gap-2"
                   >
+                    <div className="flex items-center justify-between flex-1 bg-slate-800 rounded-lg px-3 py-2">
+                      <span className="text-slate-200 font-medium">{item.word}</span>
+                      <span className={`font-semibold ${item.wasCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                        {item.wasCorrect ? '✓' : '✗'}
+                      </span>
+                    </div>
                     <button
                       onClick={() => handleFlagWord(item.word)}
                       disabled={isWordCurrentlyFlagged(item.word)}
-                      className={`text-lg leading-none transition-opacity ${
+                      className={`text-lg leading-none transition-all flex-shrink-0 ${
                         isWordCurrentlyFlagged(item.word) 
                           ? 'opacity-30 cursor-not-allowed' 
                           : 'hover:scale-110 active:scale-95'
@@ -100,10 +106,6 @@ export default function EndOfTurnModal() {
                     >
                       🗑️
                     </button>
-                    <span className="text-slate-300 flex-1 text-right">{item.word}</span>
-                    <span className={item.wasCorrect ? 'text-green-400' : 'text-red-400'}>
-                      {item.wasCorrect ? '✓' : '✗'}
-                    </span>
                   </div>
                 ))}
               </div>

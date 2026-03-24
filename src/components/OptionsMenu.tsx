@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { modalOverlay, modalContent } from '../utils/motion';
+import { isGlobalMuted, setGlobalMute } from '../hooks/useAudio';
 
 interface OptionsMenuProps {
   onPause: () => void;
@@ -10,6 +11,7 @@ interface OptionsMenuProps {
 
 export default function OptionsMenu({ onPause, onResume }: OptionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(isGlobalMuted());
   const exitToMenu = useGameStore((s) => s.exitToMenu);
 
   const handleOpen = () => {
@@ -24,6 +26,12 @@ export default function OptionsMenu({ onPause, onResume }: OptionsMenuProps) {
 
   const handleExit = () => {
     exitToMenu();
+  };
+
+  const handleToggleMute = () => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    setGlobalMute(newMuted);
   };
 
   return (
@@ -54,6 +62,14 @@ export default function OptionsMenu({ onPause, onResume }: OptionsMenuProps) {
               <h2 className="text-2xl font-black text-center text-slate-100">
                 ⏸️ המשחק מושהה
               </h2>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleToggleMute}
+                className="btn-secondary w-full"
+              >
+                {isMuted ? '🔇 הפעל צלילים' : '🔊 השתק צלילים'}
+              </motion.button>
 
               <motion.button
                 whileTap={{ scale: 0.95 }}

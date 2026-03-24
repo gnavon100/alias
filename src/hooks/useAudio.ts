@@ -11,12 +11,21 @@ import { useCallback, useRef } from 'react';
  */
 
 let audioCtx: AudioContext | null = null;
+let globalMuted = false;
 
 function getAudioCtx(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
   }
   return audioCtx;
+}
+
+export function setGlobalMute(muted: boolean): void {
+  globalMuted = muted;
+}
+
+export function isGlobalMuted(): boolean {
+  return globalMuted;
 }
 
 /**
@@ -29,6 +38,7 @@ function playTone(
   type: OscillatorType = 'sine',
   volume = 0.3,
 ) {
+  if (globalMuted) return;
   try {
     const ctx = getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
